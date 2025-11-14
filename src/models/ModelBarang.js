@@ -17,10 +17,13 @@ const ModelBarang = db.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+
+    // KATEGORI ENUM
     kategori: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM("elektronik", "furniture", "kendaraan", "lainnya"),
       allowNull: false,
     },
+
     stok: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -30,12 +33,12 @@ const ModelBarang = db.define(
       type: DataTypes.ENUM("baik", "rusak ringan", "rusak berat"),
       defaultValue: "baik",
     },
-    img:{
-        type: DataTypes.STRING,
+    img: {
+      type: DataTypes.STRING,
     },
-    path_img:{
-        type: DataTypes.STRING,
-    }
+    path_img: {
+      type: DataTypes.STRING,
+    },
   },
   {
     freezeTableName: true,
