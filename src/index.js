@@ -10,7 +10,7 @@ import RouteAuth from "./routers/RouteAuth.js";
 import RouteBarang from "./routers/RouteBarang.js";
 import RoutePeminjaman from "./routers/RoutePeminjaman.js";
 
-import createModel from "./models/ModelBarang.js";
+import createModel from "./models/ModelPeminjaman.js";
 
 const app = express();
 dotenv.config();

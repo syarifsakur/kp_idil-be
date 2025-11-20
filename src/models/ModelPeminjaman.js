@@ -51,6 +51,12 @@ const ModelPeminjaman = db.define(
       type: DataTypes.INTEGER,
       defaultValue: 0,
     },
+    file_peminjaman: {
+      type: DataTypes.STRING,
+    },
+    path_file_peminjaman: {
+      type: DataTypes.STRING,
+    },
   },
   {
     freezeTableName: true,

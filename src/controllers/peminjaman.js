@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import ModelPeminjaman from "../models/ModelPeminjaman.js";
 import ModelBarang from "../models/ModelBarang.js";
+import path from "path";
 
 export const createPeminjaman = async (req, res) => {
   const {
@@ -10,6 +11,25 @@ export const createPeminjaman = async (req, res) => {
     tanggal_pinjam,
     tanggal_kembali_direncanakan,
   } = req.body;
+
+  if (!req.files) return res.status(422).json({ img: "Img harus di isi!" });
+
+  const file = req.files.file;
+  const fileSize = file.data.length;
+  const ext = path.extname(file.name);
+  const allowedTypes = [".pdf"];
+  const filename = Date.now() + ext;
+
+  if (!allowedTypes.includes(ext.toLowerCase()))
+    return res.status(422).json({ file: "Format File tidak di dukung!" });
+  if (fileSize > 30000000)
+    return res.status(422).json({ file: "Ukuran File terlalu besar!" });
+
+  const pathFile = `${req.protocol}://${req.get(
+    "host"
+  )}/public/peminjaman/${filename}`;
+
+  file.mv(`public/peminjaman/${filename}`);
   try {
     const barang = await ModelBarang.findByPk(barang_id);
     if (!barang) {
@@ -27,6 +47,8 @@ export const createPeminjaman = async (req, res) => {
       tanggal_pinjam,
       tanggal_kembali_direncanakan,
       status: "dipinjam",
+      file_peminjaman: filename,
+      path_file_peminjaman: pathFile,
     });
 
     await barang.update({ stok: barang.stok - jumlah });
@@ -81,6 +103,8 @@ export const getRiwayatPeminjaman = async (req, res) => {
           "tanggal_pinjam",
           "tanggal_kembali_direncanakan",
           "status",
+          "file_peminjaman",
+          "path_file_peminjaman",
         ],
         include: [
           {
@@ -102,31 +126,33 @@ export const getRiwayatPeminjaman = async (req, res) => {
 };
 
 export const updateStatusPeminjaman = async (req, res) => {
+  const { id } = req.params;
+  const { status, kondisi_kembali } = req.body;
+
+  const allowed = ["dipinjam", "hilang", "dikembalikan"];
+  if (!allowed.includes(status)) {
+    return res.status(400).json({ message: "Status tidak valid." });
+  }
+
+  const peminjaman = await ModelPeminjaman.findOne({ where: { uuid: id } });
+  if (!peminjaman) {
+    return res
+      .status(404)
+      .json({ message: "Data peminjaman tidak ditemukan." });
+  }
+
+  // Jika dikembalikan stok barang dikembalikan
+  if (status === "dikembalikan") {
+    const barang = await ModelBarang.findByPk(peminjaman.barang_id);
+    if (barang) {
+      await barang.update({ stok: barang.stok + peminjaman.jumlah });
+    }
+  }
+
   try {
-    const { id } = req.params;
-    const { status, tanggal_kembali_actual, kondisi_kembali } = req.body;
-
-    const allowed = ["dipinjam", "hilang", "dikembalikan"];
-    if (!allowed.includes(status)) {
-      return res.status(400).json({ message: "Status tidak valid." });
-    }
-
-    const peminjaman = await ModelPeminjaman.findOne({ where: { uuid: id } });
-    if (!peminjaman) {
-      return res.status(404).json({ message: "Data peminjaman tidak ditemukan." });
-    }
-
-    if (status === "dikembalikan") {
-      const barang = await ModelBarang.findByPk(peminjaman.barang_id);
-      if (barang) {
-        await barang.update({ stok: barang.stok + peminjaman.jumlah });
-      }
-    }
-
     await peminjaman.update({
       status,
-      tanggal_kembali_actual:
-        tanggal_kembali_actual || peminjaman.tanggal_kembali_actual,
+      tanggal_kembali_actual: new Date(), // tanggal sekarang
       kondisi_kembali: kondisi_kembali || peminjaman.kondisi_kembali,
     });
 
